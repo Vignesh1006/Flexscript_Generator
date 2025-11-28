@@ -109,7 +109,7 @@
             transition: all 0.3s;
         }
 
-        textarea:focus {
+        textarea:focus, input[type="password"]:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
@@ -425,6 +425,34 @@
                 💡 <strong>Tip:</strong> Be specific about what you want. Mention triggers (On Entry, On Exit, On Arrival), object names, and conditions.
             </div>
 
+            <!-- API Key Configuration -->
+            <div class="input-section" style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);">
+                <div class="section-title" style="color: #2d3436;">🔑 API Key Configuration</div>
+                <div class="input-group">
+                    <label style="color: #2d3436;">Claude API Key</label>
+                    <input
+                        type="password"
+                        id="apiKey"
+                        placeholder="sk-ant-api03-xxxxx..."
+                        style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 15px; font-family: inherit; transition: all 0.3s;"
+                    />
+                    <p style="font-size: 13px; color: #636e72; margin-top: 10px;">
+                        📘 Don't have an API key? Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: #667eea; font-weight: 600;">console.anthropic.com</a>
+                    </p>
+                    <p style="font-size: 12px; color: #636e72; margin-top: 5px;">
+                        🔒 Your API key is stored locally in your browser and never shared with anyone.
+                    </p>
+                </div>
+                <button
+                    class="btn-generate"
+                    onclick="saveApiKey()"
+                    style="width: auto; margin-top: 10px; padding: 12px 24px; font-size: 14px;"
+                >
+                    <span>💾</span> Save API Key
+                </button>
+                <div id="apiKeyStatus" style="margin-top: 10px; font-size: 13px; font-weight: 600;"></div>
+            </div>
+
             <!-- Features -->
             <div class="features">
                 <div class="feature-card">
@@ -537,11 +565,50 @@
     <script>
         // Show info alert on load
         window.onload = () => {
+            // Load saved API key
+            const savedApiKey = localStorage.getItem('claudeApiKey');
+            if (savedApiKey) {
+                document.getElementById('apiKey').value = savedApiKey;
+                updateApiKeyStatus('✅ API Key loaded from storage', '#10b981');
+            } else {
+                updateApiKeyStatus('⚠️ Please configure your API key first', '#f59e0b');
+            }
+
             document.getElementById('infoAlert').classList.add('show');
             setTimeout(() => {
                 document.getElementById('infoAlert').classList.remove('show');
             }, 5000);
         };
+
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (!apiKey) {
+                updateApiKeyStatus('❌ Please enter an API key', '#ef4444');
+                return;
+            }
+
+            if (!apiKey.startsWith('sk-ant-')) {
+                updateApiKeyStatus('⚠️ API key should start with "sk-ant-"', '#f59e0b');
+                return;
+            }
+
+            localStorage.setItem('claudeApiKey', apiKey);
+            updateApiKeyStatus('✅ API Key saved successfully!', '#10b981');
+
+            // Hide the message after 3 seconds
+            setTimeout(() => {
+                document.getElementById('apiKeyStatus').style.opacity = '0';
+            }, 3000);
+        }
+
+        function updateApiKeyStatus(message, color) {
+            const statusElement = document.getElementById('apiKeyStatus');
+            statusElement.textContent = message;
+            statusElement.style.color = color;
+            statusElement.style.opacity = '1';
+            statusElement.style.transition = 'opacity 0.3s';
+        }
 
         function useExample(element) {
             document.getElementById('userPrompt').value = element.textContent.trim();
@@ -553,20 +620,30 @@
 
         async function generateAICode() {
             const userPrompt = document.getElementById('userPrompt').value.trim();
-            
+
             if (!userPrompt) {
                 showError('Please describe what you want to do in FlexSim');
+                return;
+            }
+
+            // Check if API key is configured
+            const apiKey = localStorage.getItem('claudeApiKey');
+            if (!apiKey) {
+                showError('Please configure your Claude API Key first. Scroll up to the API Key Configuration section.');
+                // Scroll to API key section
+                document.getElementById('apiKey').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('apiKey').focus();
                 return;
             }
 
             // Hide previous outputs
             document.getElementById('outputSection').classList.remove('show');
             document.getElementById('errorAlert').classList.remove('show');
-            
+
             // Show loading
             const loadingContainer = document.getElementById('loadingContainer');
             loadingContainer.classList.add('show');
-            
+
             // Disable button
             const generateBtn = document.getElementById('generateBtn');
             generateBtn.disabled = true;
@@ -578,6 +655,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01'
                     },
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-20250514',
@@ -620,10 +699,37 @@ Generate the complete, production-ready FlexScript code now. Remember: ONLY PLAI
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    let errorMessage = 'Failed to generate code. ';
+
+                    switch (response.status) {
+                        case 401:
+                            errorMessage += 'Invalid API key. Please check your API key and try again.';
+                            break;
+                        case 403:
+                            errorMessage += 'Access forbidden. Please verify your API key has proper permissions.';
+                            break;
+                        case 429:
+                            errorMessage += 'Rate limit exceeded. Please wait a moment and try again.';
+                            break;
+                        case 500:
+                        case 502:
+                        case 503:
+                            errorMessage += 'Claude API is temporarily unavailable. Please try again in a moment.';
+                            break;
+                        default:
+                            errorMessage += `API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`;
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
+
+                // Validate response structure
+                if (!data.content || !data.content[0] || !data.content[0].text) {
+                    throw new Error('Invalid response format from API. Please try again.');
+                }
+
                 let code = data.content[0].text;
 
                 // COMPREHENSIVE CODE CLEANING
@@ -660,7 +766,15 @@ Generate the complete, production-ready FlexScript code now. Remember: ONLY PLAI
 
             } catch (error) {
                 console.error('Error:', error);
-                showError('Failed to generate code. Please check your internet connection and try again.');
+
+                // Determine error type and show appropriate message
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    showError('Network error: Please check your internet connection and try again.');
+                } else if (error.message.includes('CORS')) {
+                    showError('CORS error: This app needs to be accessed via a web server or as a local file. Some browsers may block direct API calls.');
+                } else {
+                    showError(error.message || 'Failed to generate code. Please try again.');
+                }
             } finally {
                 // Hide loading
                 loadingContainer.classList.remove('show');
