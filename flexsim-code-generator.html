@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlexSim Code Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-clear {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-copy {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #059669;
+        }
+
+        .output-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .code-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .code-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .code-output::-webkit-scrollbar-track {
+            background: #2d2d2d;
+            border-radius: 10px;
+        }
+
+        .code-output::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .example-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .chip {
+            padding: 8px 15px;
+            background: #e8eaf6;
+            color: #5e72e4;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .chip:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        .syntax-keyword { color: #569cd6; }
+        .syntax-function { color: #dcdcaa; }
+        .syntax-string { color: #ce9178; }
+        .syntax-comment { color: #6a9955; }
+        .syntax-number { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 FlexSim Code Generator</h1>
+            <p>Generate FlexSim code snippets for your specific scenarios</p>
+            <p style="margin-top: 10px; font-size: 13px; opacity: 0.9;">
+                Prepared by <strong>Vignesh S</strong>
+            </p>
+        </div>
+
+        <div class="content">
+            <div class="alert alert-info" id="infoAlert">
+                💡 Select your scenario and fill in the details to generate custom FlexSim code
+            </div>
+
+            <div class="alert alert-success" id="successAlert">
+                ✅ Code copied to clipboard!
+            </div>
+
+            <!-- Scenario Selection -->
+            <div class="section">
+                <div class="section-title">Select Scenario Type</div>
+                <div class="input-group">
+                    <label>What do you want to do?</label>
+                    <select id="scenarioType" onchange="updateScenarioOptions()">
+                        <option value="">-- Select Scenario --</option>
+                        <option value="port_control">Open/Close Ports</option>
+                        <option value="routing">Item Routing</option>
+                        <option value="process_time">Process Time Logic</option>
+                        <option value="queue_control">Queue Management</option>
+                        <option value="label_assignment">Label Assignment</option>
+                        <option value="transporter_control">Transporter Control</option>
+                        <option value="breakdown">Breakdown/Maintenance</option>
+                        <option value="batching">Batching/Combining</option>
+                        <option value="statistics">Statistics Collection</option>
+                        <option value="custom">Custom Logic</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Scenario Options -->
+            <div id="scenarioOptions"></div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button class="btn-generate" onclick="generateCode()">
+                    <span>⚡</span> Generate Code
+                </button>
+                <button class="btn-clear" onclick="clearAll()">
+                    <span>🗑️</span> Clear All
+                </button>
+            </div>
+
+            <!-- Code Output -->
+            <div class="output-section" id="outputSection" style="display: none;">
+                <div class="section-title">Generated Code</div>
+                <div class="code-output" id="codeOutput"></div>
+                <div class="button-group" style="margin-top: 15px;">
+                    <button class="btn-copy" onclick="copyCode()">
+                        <span>📋</span> Copy to Clipboard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.95); border-radius: 15px;">
+            <p style="margin: 0; color: #333; font-size: 15px; font-weight: 600;">
+                Prepared by Vignesh S
+            </p>
+            <p style="margin: 5px 0 0 0; color: #888; font-size: 12px;">
+                FlexSim Code Generator © 2024
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Scenario templates and logic
+        const scenarioTemplates = {
+            port_control: {
+                title: 'Port Control Options',
+                fields: [
+                    {
+                        id: 'action',
+                        label: 'Action Type',
+                        type: 'select',
+                        options: [
+                            { value: 'open_output', label: 'Open Output Port' },
+                            { value: 'close_output', label: 'Close Output Port' },
+                            { value: 'open_input', label: 'Open Input Port' },
+                            { value: 'close_input', label: 'Close Input Port' },
+                            { value: 'toggle', label: 'Toggle Port State' },
+                            { value: 'conditional', label: 'Conditional Port Control' }
+                        ]
+                    },
+                    {
+                        id: 'trigger',
+                        label: 'When to Execute',
+                        type: 'select',
+                        options: [
+                            { value: 'on_entry', label: 'On Entry' },
+                            { value: 'on_exit', label: 'On Exit' },
+                            { value: 'on_arrival', label: 'On Arrival (Control Point)' },
+                            { value: 'on_continue', label: 'On Continue (Control Point)' },
+                            { value: 'on_process_finish', label: 'On Process Finish' }
+                        ]
+                    },
+                    {
+                        id: 'objectPath',
+                        label: 'Target Object Path (e.g., /Queue1)',
+                        type: 'text',
+                        placeholder: '/Queue1'
+                    },
+                    {
+                        id: 'condition',
+                        label: 'Condition (optional)',
+                        type: 'text',
+                        placeholder: 'e.g., itemType == 1',
+                        showIf: { field: 'action', value: 'conditional' }
+                    }
+                ]
+            },
+            routing: {
+                title: 'Item Routing Options',
+                fields: [
+                    {
+                        id: 'routingType',
+                        label: 'Routing Method',
+                        type: 'select',
+                        options: [
+                            { value: 'by_type', label: 'Route by Item Type' },
+                            { value: 'by_label', label: 'Route by Label Value' },
+                            { value: 'by_priority', label: 'Route by Priority' },
+                            { value: 'round_robin', label: 'Round Robin' },
+                            { value: 'random', label: 'Random Routing' },
+                            { value: 'shortest_queue', label: 'Shortest Queue' }
+                        ]
+                    },
+                    {
+                        id: 'numPorts',
+                        label: 'Number of Output Ports',
+                        type: 'number',
+                        value: '2',
+                        min: '2',
+                        max: '10'
+                    },
+                    {
+                        id: 'labelName',
+                        label: 'Label Name (if routing by label)',
+                        type: 'text',
+                        placeholder: 'Priority',
+                        showIf: { field: 'routingType', value: 'by_label' }
+                    }
+                ]
+            },
+            process_time: {
+                title: 'Process Time Configuration',
+                fields: [
+                    {
+                        id: 'timeType',
+                        label: 'Time Distribution',
+                        type: 'select',
+                        options: [
+                            { value: 'constant', label: 'Constant Time' },
+                            { value: 'uniform', label: 'Uniform Distribution' },
+                            { value: 'normal', label: 'Normal Distribution' },
+                            { value: 'exponential', label: 'Exponential Distribution' },
+                            { value: 'triangular', label: 'Triangular Distribution' },
+                            { value: 'by_type', label: 'Different Time by Item Type' }
+                        ]
+                    },
+                    {
+                        id: 'timeValue',
+                        label: 'Time Value (seconds)',
+                        type: 'text',
+                        placeholder: '20'
+                    },
+                    {
+                        id: 'timeValue2',
+                        label: 'Additional Parameter (for distributions)',
+                        type: 'text',
+                        placeholder: 'e.g., std dev, max value'
+                    }
+                ]
+            },
+            queue_control: {
+                title: 'Queue Management Options',
+                fields: [
+                    {
+                        id: 'queueAction',
+                        label: 'Queue Action',
+                        type: 'select',
+                        options: [
+                            { value: 'pull_fifo', label: 'Pull FIFO (First In First Out)' },
+                            { value: 'pull_lifo', label: 'Pull LIFO (Last In First Out)' },
+                            { value: 'pull_priority', label: 'Pull by Priority' },
+                            { value: 'pull_label', label: 'Pull by Label Value' },
+                            { value: 'capacity_check', label: 'Check Capacity Before Entry' },
+                            { value: 'batch_release', label: 'Batch Release (Release N items)' }
+                        ]
+                    },
+                    {
+                        id: 'queuePath',
+                        label: 'Queue Object Path',
+                        type: 'text',
+                        placeholder: '/Queue1'
+                    },
+                    {
+                        id: 'priorityLabel',
+                        label: 'Priority/Label Name',
+                        type: 'text',
+                        placeholder: 'Priority',
+                        showIf: { field: 'queueAction', values: ['pull_priority', 'pull_label'] }
+                    }
+                ]
+            },
+            label_assignment: {
+                title: 'Label Assignment',
+                fields: [
+                    {
+                        id: 'labelName',
+                        label: 'Label Name',
+                        type: 'text',
+                        placeholder: 'Priority'
+                    },
+                    {
+                        id: 'labelType',
+                        label: 'Label Type',
+                        type: 'select',
+                        options: [
+                            { value: 'number', label: 'Number' },
+                            { value: 'string', label: 'Text' }
+                        ]
+                    },
+                    {
+                        id: 'assignmentType',
+                        label: 'Assignment Method',
+                        type: 'select',
+                        options: [
+                            { value: 'constant', label: 'Constant Value' },
+                            { value: 'random', label: 'Random Value' },
+                            { value: 'sequence', label: 'Sequential Counter' },
+                            { value: 'timestamp', label: 'Timestamp' },
+                            { value: 'itemtype', label: 'Based on Item Type' }
+                        ]
+                    },
+                    {
+                        id: 'labelValue',
+                        label: 'Value',
+                        type: 'text',
+                        placeholder: 'Enter value or range (e.g., 1-10)'
+                    }
+                ]
+            },
+            transporter_control: {
+                title: 'Transporter Control',
+                fields: [
+                    {
+                        id: 'transporterAction',
+                        label: 'Transporter Action',
+                        type: 'select',
+                        options: [
+                            { value: 'load', label: 'Load Item' },
+                            { value: 'unload', label: 'Unload Item' },
+                            { value: 'travel', label: 'Travel to Location' },
+                            { value: 'battery', label: 'Battery Management' },
+                            { value: 'speed', label: 'Change Speed' },
+                            { value: 'dispatch', label: 'Dispatch Logic' }
+                        ]
+                    },
+                    {
+                        id: 'transporterPath',
+                        label: 'Transporter Object Path',
+                        type: 'text',
+                        placeholder: '/AGV1'
+                    },
+                    {
+                        id: 'destinationPath',
+                        label: 'Destination Path (if applicable)',
+                        type: 'text',
+                        placeholder: '/Station1'
+                    }
+                ]
+            },
+            breakdown: {
+                title: 'Breakdown/Maintenance',
+                fields: [
+                    {
+                        id: 'breakdownType',
+                        label: 'Breakdown Type',
+                        type: 'select',
+                        options: [
+                            { value: 'mtbf_mttr', label: 'MTBF/MTTR Schedule' },
+                            { value: 'scheduled', label: 'Scheduled Maintenance' },
+                            { value: 'usage_based', label: 'Usage-Based Maintenance' },
+                            { value: 'random_failure', label: 'Random Failure' }
+                        ]
+                    },
+                    {
+                        id: 'mtbf',
+                        label: 'MTBF (seconds)',
+                        type: 'number',
+                        placeholder: '3600'
+                    },
+                    {
+                        id: 'mttr',
+                        label: 'MTTR (seconds)',
+                        type: 'number',
+                        placeholder: '300'
+                    }
+                ]
+            },
+            batching: {
+                title: 'Batching/Combining',
+                fields: [
+                    {
+                        id: 'batchAction',
+                        label: 'Batch Action',
+                        type: 'select',
+                        options: [
+                            { value: 'combine', label: 'Combine Items' },
+                            { value: 'separate', label: 'Separate Items' },
+                            { value: 'batch_count', label: 'Batch by Count' },
+                            { value: 'batch_type', label: 'Batch by Type' }
+                        ]
+                    },
+                    {
+                        id: 'batchSize',
+                        label: 'Batch Size',
+                        type: 'number',
+                        placeholder: '5'
+                    }
+                ]
+            },
+            statistics: {
+                title: 'Statistics Collection',
+                fields: [
+                    {
+                        id: 'statType',
+                        label: 'Statistic Type',
+                        type: 'select',
+                        options: [
+                            { value: 'cycle_time', label: 'Cycle Time' },
+                            { value: 'throughput', label: 'Throughput' },
+                            { value: 'utilization', label: 'Utilization' },
+                            { value: 'wip', label: 'Work In Progress' },
+                            { value: 'queue_time', label: 'Queue Time' },
+                            { value: 'custom', label: 'Custom Metric' }
+                        ]
+                    },
+                    {
+                        id: 'objectPath',
+                        label: 'Object to Track',
+                        type: 'text',
+                        placeholder: '/Processor1'
+                    }
+                ]
+            },
+            custom: {
+                title: 'Custom Logic',
+                fields: [
+                    {
+                        id: 'description',
+                        label: 'Describe what you want to do',
+                        type: 'textarea',
+                        placeholder: 'E.g., Check if item count is greater than 10, then send message to processor'
+                    }
+                ]
+            }
+        };
+
+        function updateScenarioOptions() {
+            const scenarioType = document.getElementById('scenarioType').value;
+            const optionsDiv = document.getElementById('scenarioOptions');
+            
+            if (!scenarioType) {
+                optionsDiv.innerHTML = '';
+                return;
+            }
+
+            const template = scenarioTemplates[scenarioType];
+            let html = `<div class="section">
+                <div class="section-title">${template.title}</div>`;
+
+            template.fields.forEach(field => {
+                html += `<div class="input-group" id="field_${field.id}" ${field.showIf ? 'style="display:none;"' : ''}>
+                    <label>${field.label}</label>`;
+
+                if (field.type === 'select') {
+                    html += `<select id="${field.id}" onchange="handleFieldChange()">
+                        <option value="">-- Select --</option>`;
+                    field.options.forEach(opt => {
+                        html += `<option value="${opt.value}">${opt.label}</option>`;
+                    });
+                    html += `</select>`;
+                } else if (field.type === 'textarea') {
+                    html += `<textarea id="${field.id}" placeholder="${field.placeholder || ''}"></textarea>`;
+                } else {
+                    html += `<input type="${field.type}" id="${field.id}" 
+                        placeholder="${field.placeholder || ''}" 
+                        ${field.value ? `value="${field.value}"` : ''}
+                        ${field.min ? `min="${field.min}"` : ''}
+                        ${field.max ? `max="${field.max}"` : ''}>`;
+                }
+
+                if (field.help) {
+                    html += `<div class="help-text">${field.help}</div>`;
+                }
+
+                html += `</div>`;
+            });
+
+            html += `</div>`;
+            optionsDiv.innerHTML = html;
+        }
+
+        function handleFieldChange() {
+            const scenarioType = document.getElementById('scenarioType').value;
+            const template = scenarioTemplates[scenarioType];
+
+            template.fields.forEach(field => {
+                if (field.showIf) {
+                    const fieldDiv = document.getElementById(`field_${field.id}`);
+                    const triggerField = document.getElementById(field.showIf.field);
+                    
+                    if (field.showIf.values) {
+                        fieldDiv.style.display = field.showIf.values.includes(triggerField.value) ? 'block' : 'none';
+                    } else {
+                        fieldDiv.style.display = triggerField.value === field.showIf.value ? 'block' : 'none';
+                    }
+                }
+            });
+        }
+
+        function generateCode() {
+            const scenarioType = document.getElementById('scenarioType').value;
+            
+            if (!scenarioType) {
+                alert('Please select a scenario type');
+                return;
+            }
+
+            let code = '';
+            
+            switch(scenarioType) {
+                case 'port_control':
+                    code = generatePortControlCode();
+                    break;
+                case 'routing':
+                    code = generateRoutingCode();
+                    break;
+                case 'process_time':
+                    code = generateProcessTimeCode();
+                    break;
+                case 'queue_control':
+                    code = generateQueueControlCode();
+                    break;
+                case 'label_assignment':
+                    code = generateLabelAssignmentCode();
+                    break;
+                case 'transporter_control':
+                    code = generateTransporterControlCode();
+                    break;
+                case 'breakdown':
+                    code = generateBreakdownCode();
+                    break;
+                case 'batching':
+                    code = generateBatchingCode();
+                    break;
+                case 'statistics':
+                    code = generateStatisticsCode();
+                    break;
+                case 'custom':
+                    code = generateCustomCode();
+                    break;
+            }
+
+            displayCode(code);
+        }
+
+        function generatePortControlCode() {
+            const action = document.getElementById('action').value;
+            const trigger = document.getElementById('trigger').value;
+            const objectPath = document.getElementById('objectPath').value || '/Queue1';
+            const condition = document.getElementById('condition')?.value || '';
+
+            let code = `// ${getTriggerComment(trigger)}\n\n`;
+
+            if (trigger === 'on_arrival' || trigger === 'on_continue') {
+                code += `treenode transporter = parnode(1); // The transporter\n`;
+            } else {
+                code += `treenode item = parnode(1); // The item\n`;
+            }
+
+            code += `treenode targetObject = node("${objectPath}", model());\n\n`;
+
+            if (action === 'conditional' && condition) {
+                code += `// Check condition\nif (${condition}) {\n    `;
+            }
+
+            switch(action) {
+                case 'open_output':
+                    code += `// Open output port\ncloseoutput(targetObject, 0);\nsetcolor(targetObject, "green");\nprint("${objectPath} output OPENED");`;
+                    break;
+                case 'close_output':
+                    code += `// Close output port\ncloseoutput(targetObject, 1);\nsetcolor(targetObject, "red");\nprint("${objectPath} output CLOSED");`;
+                    break;
+                case 'open_input':
+                    code += `// Open input port\ncloseinput(targetObject, 0);\nprint("${objectPath} input OPENED");`;
+                    break;
+                case 'close_input':
+                    code += `// Close input port\ncloseinput(targetObject, 1);\nprint("${objectPath} input CLOSED");`;
+                    break;
+                case 'toggle':
+                    code += `// Toggle port state\nint currentState = getoutputstatus(targetObject);\nif (currentState == 0) {\n    closeoutput(targetObject, 1);\n    setcolor(targetObject, "red");\n    print("${objectPath} CLOSED");\n} else {\n    closeoutput(targetObject, 0);\n    setcolor(targetObject, "green");\n    print("${objectPath} OPENED");\n}`;
+                    break;
+            }
+
+            if (action === 'conditional' && condition) {
+                code += `\n}`;
+            }
+
+            return code;
+        }
+
+        function generateRoutingCode() {
+            const routingType = document.getElementById('routingType').value;
+            const numPorts = document.getElementById('numPorts').value || 2;
+            const labelName = document.getElementById('labelName')?.value || 'Priority';
+
+            let code = `// Send To Port / On Exit Trigger\n\n`;
+            code += `treenode item = parnode(1);\n\n`;
+
+            switch(routingType) {
+                case 'by_type':
+                    code += `// Route by item type\nint itemType = getitemtype(item);\nreturn itemType; // Returns port number matching item type`;
+                    break;
+                case 'by_label':
+                    code += `// Route by label value\nint labelValue = getlabelnum(item, "${labelName}");\nreturn labelValue; // Returns port number based on label`;
+                    break;
+                case 'by_priority':
+                    code += `// Route by priority (higher priority to port 1)\nint priority = getlabelnum(item, "Priority");\nif (priority >= 5)\n    return 1; // High priority port\nelse if (priority >= 3)\n    return 2; // Medium priority port\nelse\n    return 3; // Low priority port`;
+                    break;
+                case 'round_robin':
+                    code += `// Round robin routing\nint counter = getvarnum(current, "PortCounter");\ncounter = (counter % ${numPorts}) + 1;\nsetvarnum(current, "PortCounter", counter);\nreturn counter;`;
+                    break;
+                case 'random':
+                    code += `// Random routing\nreturn duniform(1, ${numPorts}, 1);`;
+                    break;
+                case 'shortest_queue':
+                    code += `// Route to shortest queue\nint shortestPort = 1;\nint minContent = 999999;\n\nfor (int i = 1; i <= ${numPorts}; i++) {\n    treenode port = getoutputobject(current, i);\n    int content = content(port);\n    if (content < minContent) {\n        minContent = content;\n        shortestPort = i;\n    }\n}\n\nreturn shortestPort;`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateProcessTimeCode() {
+            const timeType = document.getElementById('timeType').value;
+            const timeValue = document.getElementById('timeValue').value || '20';
+            const timeValue2 = document.getElementById('timeValue2')?.value || '5';
+
+            let code = `// Process Time Trigger\n\n`;
+            code += `treenode item = parnode(1);\n\n`;
+
+            switch(timeType) {
+                case 'constant':
+                    code += `// Constant process time\nreturn ${timeValue};`;
+                    break;
+                case 'uniform':
+                    code += `// Uniform distribution\nreturn uniform(${timeValue}, ${timeValue2}, 1);`;
+                    break;
+                case 'normal':
+                    code += `// Normal distribution\nreturn normal(${timeValue}, ${timeValue2}, 1);`;
+                    break;
+                case 'exponential':
+                    code += `// Exponential distribution\nreturn exponential(${timeValue}, 1);`;
+                    break;
+                case 'triangular':
+                    code += `// Triangular distribution (min, mode, max)\nreturn triangular(${timeValue * 0.8}, ${timeValue}, ${timeValue * 1.2}, 1);`;
+                    break;
+                case 'by_type':
+                    code += `// Different time by item type\nint itemType = getitemtype(item);\n\nswitch(itemType) {\n    case 1: return ${timeValue};\n    case 2: return ${timeValue * 1.5};\n    case 3: return ${timeValue * 2};\n    default: return ${timeValue};\n}`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateQueueControlCode() {
+            const queueAction = document.getElementById('queueAction').value;
+            const queuePath = document.getElementById('queuePath').value || '/Queue1';
+            const priorityLabel = document.getElementById('priorityLabel')?.value || 'Priority';
+
+            let code = `// Queue Pull Strategy / On Exit Trigger\n\n`;
+            code += `treenode queue = current;\n\n`;
+
+            switch(queueAction) {
+                case 'pull_fifo':
+                    code += `// FIFO (First In First Out)\nreturn first(queue);`;
+                    break;
+                case 'pull_lifo':
+                    code += `// LIFO (Last In First Out)\nreturn last(queue);`;
+                    break;
+                case 'pull_priority':
+                    code += `// Pull highest priority item\ntreenode bestItem = NULL;\nint highestPriority = -999999;\n\nfor (int i = 1; i <= content(queue); i++) {\n    treenode item = rank(queue, i);\n    int priority = getlabelnum(item, "${priorityLabel}");\n    \n    if (priority > highestPriority) {\n        highestPriority = priority;\n        bestItem = item;\n    }\n}\n\nreturn bestItem;`;
+                    break;
+                case 'pull_label':
+                    code += `// Pull item with specific label value\ntreenode targetItem = NULL;\n\nfor (int i = 1; i <= content(queue); i++) {\n    treenode item = rank(queue, i);\n    if (getlabelnum(item, "${priorityLabel}") == 1) {\n        targetItem = item;\n        break;\n    }\n}\n\nreturn targetItem ? targetItem : first(queue);`;
+                    break;
+                case 'capacity_check':
+                    code += `// Check capacity before allowing entry\ntreenode item = parnode(1);\nint currentContent = content(queue);\nint maxCapacity = capacity(queue);\n\nif (currentContent < maxCapacity) {\n    return 1; // Allow entry\n} else {\n    print("Queue full - entry blocked");\n    return 0; // Block entry\n}`;
+                    break;
+                case 'batch_release':
+                    code += `// Batch release logic\nint batchSize = 5;\n\nif (content(queue) >= batchSize) {\n    // Release batch\n    for (int i = 1; i <= batchSize; i++) {\n        treenode item = first(queue);\n        // Release item to next station\n    }\n    return 1;\n}\nreturn 0; // Wait for full batch`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateLabelAssignmentCode() {
+            const labelName = document.getElementById('labelName').value || 'MyLabel';
+            const labelType = document.getElementById('labelType').value;
+            const assignmentType = document.getElementById('assignmentType').value;
+            const labelValue = document.getElementById('labelValue').value;
+
+            let code = `// On Creation / On Entry Trigger\n\n`;
+            code += `treenode item = parnode(1);\n\n`;
+
+            switch(assignmentType) {
+                case 'constant':
+                    if (labelType === 'number') {
+                        code += `// Assign constant number\nsetlabelnum(item, "${labelName}", ${labelValue || 1});`;
+                    } else {
+                        code += `// Assign constant string\nsetlabelstr(item, "${labelName}", "${labelValue || 'Value'}");`;
+                    }
+                    break;
+                case 'random':
+                    const [min, max] = (labelValue || '1-10').split('-').map(v => v.trim());
+                    code += `// Assign random value\nsetlabelnum(item, "${labelName}", duniform(${min || 1}, ${max || 10}, 1));`;
+                    break;
+                case 'sequence':
+                    code += `// Assign sequential number\nint counter = getvarnum(model(), "Counter_${labelName}");\ncounter++;\nsetvarnum(model(), "Counter_${labelName}", counter);\nsetlabelnum(item, "${labelName}", counter);`;
+                    break;
+                case 'timestamp':
+                    code += `// Assign current simulation time\nsetlabelnum(item, "${labelName}", time());`;
+                    break;
+                case 'itemtype':
+                    code += `// Assign based on item type\nint itemType = getitemtype(item);\nsetlabelnum(item, "${labelName}", itemType * 10); // Example calculation`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateTransporterControlCode() {
+            const transporterAction = document.getElementById('transporterAction').value;
+            const transporterPath = document.getElementById('transporterPath').value || '/AGV1';
+            const destinationPath = document.getElementById('destinationPath')?.value || '/Station1';
+
+            let code = `// Transporter Control Logic\n\n`;
+            code += `treenode transporter = node("${transporterPath}", model());\n`;
+
+            switch(transporterAction) {
+                case 'load':
+                    code += `treenode item = parnode(1);\n\n// Load item onto transporter\nload(transporter, item);\nprint("Item loaded onto transporter");`;
+                    break;
+                case 'unload':
+                    code += `treenode item = first(transporter);\n\n// Unload item from transporter\nif (item) {\n    unload(transporter, item);\n    print("Item unloaded from transporter");\n}`;
+                    break;
+                case 'travel':
+                    code += `treenode destination = node("${destinationPath}", model());\n\n// Travel to location\ntraveltoloc(transporter, destination);\nprint("Transporter traveling to destination");`;
+                    break;
+                case 'battery':
+                    code += `\n// Battery management\ndouble batteryLevel = getlabelnum(transporter, "BatteryLevel");\n\nif (batteryLevel < 20) {\n    // Low battery - go to charging station\n    treenode chargingStation = node("/ChargingStation", model());\n    traveltoloc(transporter, chargingStation);\n    delay(1800); // 30 min charging\n    setlabelnum(transporter, "BatteryLevel", 100);\n    print("Battery recharged");\n}`;
+                    break;
+                case 'speed':
+                    code += `\n// Change transporter speed\nsetspeed(transporter, 2.0); // Set speed to 2.0 m/s\nprint("Speed changed");`;
+                    break;
+                case 'dispatch':
+                    code += `\n// Dispatch nearest available transporter\ntreenode nearestAGV = NULL;\ndouble minDist = 999999;\n\nfor (int i = 1; i <= content(group("AGVFleet")); i++) {\n    treenode agv = rank(group("AGVFleet"), i);\n    if (getvarnum(agv, "state") == STATE_IDLE) {\n        double dist = gettraveltime(agv, current);\n        if (dist < minDist) {\n            minDist = dist;\n            nearestAGV = agv;\n        }\n    }\n}\n\nif (nearestAGV) {\n    print("Dispatching nearest AGV");\n    // Add task assignment here\n}`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateBreakdownCode() {
+            const breakdownType = document.getElementById('breakdownType').value;
+            const mtbf = document.getElementById('mtbf').value || '3600';
+            const mttr = document.getElementById('mttr').value || '300';
+
+            let code = '';
+
+            if (breakdownType === 'mtbf_mttr') {
+                code = `// On Reset Trigger - Initialize breakdowns\n`;
+                code += `double mtbf = ${mtbf}; // Mean Time Between Failures\n`;
+                code += `scheduledowntime(current, exponential(mtbf, 1));\n\n`;
+                code += `// On Breakdown Trigger\n`;
+                code += `double mttr = ${mttr}; // Mean Time To Repair\n`;
+                code += `return exponential(mttr, 1);\n\n`;
+                code += `// On Resume Trigger\n`;
+                code += `double mtbf = ${mtbf};\n`;
+                code += `scheduledowntime(current, exponential(mtbf, 1));`;
+            } else if (breakdownType === 'scheduled') {
+                code = `// Scheduled maintenance (daily at 8:00 AM)\n`;
+                code += `double maintenanceTime = 28800; // 8:00 AM in seconds\n`;
+                code += `double maintenanceDuration = 3600; // 1 hour\n\n`;
+                code += `if (fmod(time(), 86400) >= maintenanceTime && \n`;
+                code += `    fmod(time(), 86400) < maintenanceTime + maintenanceDuration) {\n`;
+                code += `    return 1; // Machine down for maintenance\n`;
+                code += `}\n`;
+                code += `return 0; // Machine operational`;
+            }
+
+            return code;
+        }
+
+        function generateBatchingCode() {
+            const batchAction = document.getElementById('batchAction').value;
+            const batchSize = document.getElementById('batchSize').value || '5';
+
+            let code = '';
+
+            switch(batchAction) {
+                case 'batch_count':
+                    code = `// Combiner - Batch by Count\n\n`;
+                    code += `int batchSize = ${batchSize};\n`;
+                    code += `int currentCount = content(current);\n\n`;
+                    code += `if (currentCount >= batchSize) {\n`;
+                    code += `    // Release batch\n`;
+                    code += `    return batchSize;\n`;
+                    code += `}\n`;
+                    code += `return 0; // Wait for more items`;
+                    break;
+                case 'separate':
+                    code = `// Separator - Split items\n\n`;
+                    code += `treenode container = parnode(1);\n`;
+                    code += `int itemCount = getlabelnum(container, "ItemCount");\n\n`;
+                    code += `// Create individual items\n`;
+                    code += `for (int i = 1; i < itemCount; i++) {\n`;
+                    code += `    treenode newItem = createcopy(container, current);\n`;
+                    code += `    setlabelnum(newItem, "ItemNumber", i);\n`;
+                    code += `}`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateStatisticsCode() {
+            const statType = document.getElementById('statType').value;
+            const objectPath = document.getElementById('objectPath').value || '/Processor1';
+
+            let code = `// Statistics Collection\n\n`;
+            code += `treenode targetObject = node("${objectPath}", model());\n\n`;
+
+            switch(statType) {
+                case 'cycle_time':
+                    code += `// Track cycle time\ntreenode item = parnode(1);\ndouble arrivalTime = getlabelnum(item, "ArrivalTime");\ndouble cycleTime = time() - arrivalTime;\n\nprint(concat("Cycle Time: ", numtostring(cycleTime), " seconds"));`;
+                    break;
+                case 'throughput':
+                    code += `// Calculate throughput\nint outputCount = content(node("/Sink1", model()));\ndouble throughput = outputCount / (time() / 3600);\n\nprint(concat("Throughput: ", numtostring(throughput), " items/hour"));`;
+                    break;
+                case 'utilization':
+                    code += `// Calculate utilization\ndouble processingTime = getstat(targetObject, "State Profile", STAT_PROCESSING);\ndouble utilization = (processingTime / time()) * 100;\n\nprint(concat("Utilization: ", numtostring(utilization), "%"));`;
+                    break;
+                case 'wip':
+                    code += `// Track Work In Progress\nint wipCount = getstat(node("/Model", model()), "WIP Content", STAT_CURRENT);\n\nprint(concat("Current WIP: ", numtostring(wipCount)));`;
+                    break;
+                case 'queue_time':
+                    code += `// Track queue time\ndouble avgQueueTime = getstat(targetObject, "staytime", STAT_AVERAGE) / 60;\n\nprint(concat("Avg Queue Time: ", numtostring(avgQueueTime), " minutes"));`;
+                    break;
+            }
+
+            return code;
+        }
+
+        function generateCustomCode() {
+            const description = document.getElementById('description').value;
+            
+            let code = `// Custom Logic\n`;
+            code += `// Description: ${description || 'Add your custom description'}\n\n`;
+            code += `treenode item = parnode(1);\n\n`;
+            code += `// TODO: Add your custom logic here\n`;
+            code += `// Example:\n`;
+            code += `// if (condition) {\n`;
+            code += `//     // Do something\n`;
+            code += `// }`;
+
+            return code;
+        }
+
+        function getTriggerComment(trigger) {
+            const triggers = {
+                'on_entry': 'Place this code in: On Entry Trigger',
+                'on_exit': 'Place this code in: On Exit / Send To Port Trigger',
+                'on_arrival': 'Place this code in: Control Point - On Arrival Trigger',
+                'on_continue': 'Place this code in: Control Point - On Continue Trigger',
+                'on_process_finish': 'Place this code in: Processor - On Process Finish Trigger'
+            };
+            return triggers[trigger] || 'Place this code in the appropriate trigger';
+        }
+
+        function displayCode(code) {
+            const outputSection = document.getElementById('outputSection');
+            const codeOutput = document.getElementById('codeOutput');
+            
+            // Syntax highlighting (basic)
+            code = code
+                .replace(/\/\/.*/g, '<span class="syntax-comment">$&</span>')
+                .replace(/\b(treenode|int|double|if|else|for|while|return|switch|case|void)\b/g, '<span class="syntax-keyword">$&</span>')
+                .replace(/\b(parnode|node|getlabelnum|setlabelnum|content|closeoutput|print|time|delay)\b/g, '<span class="syntax-function">$&</span>')
+                .replace(/"([^"]*)"/g, '"<span class="syntax-string">$1</span>"')
+                .replace(/\b(\d+\.?\d*)\b/g, '<span class="syntax-number">$&</span>');
+            
+            codeOutput.innerHTML = code;
+            outputSection.style.display = 'block';
+            
+            // Scroll to output
+            outputSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function copyCode() {
+            const codeOutput = document.getElementById('codeOutput');
+            const text = codeOutput.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const successAlert = document.getElementById('successAlert');
+                successAlert.classList.add('show');
+                setTimeout(() => {
+                    successAlert.classList.remove('show');
+                }, 3000);
+            });
+        }
+
+        function clearAll() {
+            document.getElementById('scenarioType').value = '';
+            document.getElementById('scenarioOptions').innerHTML = '';
+            document.getElementById('outputSection').style.display = 'none';
+        }
+
+        // Show info alert on load
+        window.onload = () => {
+            document.getElementById('infoAlert').classList.add('show');
+        };
+    </script>
+</body>
+</html>

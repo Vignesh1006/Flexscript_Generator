@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Cleaner Test - Vignesh S</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .box h2 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            min-height: 200px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge-dirty {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-clean {
+            background: #d1fae5;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 FlexSim Code Cleaner Test</h1>
+    <p style="text-align: center; color: #666;">
+        Prepared by <strong>Vignesh S</strong> | Test the code cleaning functionality
+    </p>
+
+    <div class="container">
+        <div class="box">
+            <h2>Input (Dirty Code) <span class="badge badge-dirty">WITH MARKUP</span></h2>
+            <textarea id="dirtyCode" placeholder="Paste code with syntax- tags here...">syntax-comment">// Place this code in the OnFinishTask trigger
+syntax-keyword">double delayTime = 30.0;
+syntax-comment">// Apply the delay
+syntax-function">closeoutput(queue, 0);</textarea>
+            <button onclick="cleanCode()">🧹 Clean Code</button>
+        </div>
+
+        <div class="box">
+            <h2>Output (Clean Code) <span class="badge badge-clean">CLEANED</span></h2>
+            <div class="output" id="cleanOutput">Click "Clean Code" to see result...</div>
+            <button onclick="copyClean()">📋 Copy Clean Code</button>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h2 style="color: #667eea;">How It Works:</h2>
+        <ol style="color: #666; line-height: 1.8;">
+            <li><strong>Remove markdown blocks:</strong> Strips ```code``` wrappers</li>
+            <li><strong>Remove ALL HTML tags:</strong> Strips &lt;span&gt;, &lt;div&gt;, etc.</li>
+            <li><strong>Remove syntax patterns:</strong> Removes "syntax-comment"&gt;, "syntax-keyword"&gt;, etc.</li>
+            <li><strong>Clean HTML entities:</strong> Converts &amp;lt;, &amp;gt;, &amp;quot; back to normal</li>
+            <li><strong>Final polish:</strong> Trims whitespace and ensures clean output</li>
+        </ol>
+    </div>
+
+    <script>
+        function cleanCode() {
+            let code = document.getElementById('dirtyCode').value;
+            
+            // APPLY ALL CLEANING STEPS
+            // Step 1: Remove markdown code blocks
+            code = code.replace(/```[\w]*\n?/g, '').trim();
+            
+            // Step 2: Remove ALL HTML/XML tags
+            code = code.replace(/<\/?[^>]+(>|$)/g, '');
+            
+            // Step 3: Remove syntax highlighting patterns
+            code = code.replace(/syntax-(comment|keyword|function|string|number|variable)">/g, '');
+            code = code.replace(/<span[^>]*>/g, '');
+            code = code.replace(/<\/span>/g, '');
+            
+            // Step 4: Remove HTML entities
+            code = code.replace(/&lt;/g, '<');
+            code = code.replace(/&gt;/g, '>');
+            code = code.replace(/&quot;/g, '"');
+            code = code.replace(/&amp;/g, '&');
+            code = code.replace(/"|"/g, '"');
+            code = code.replace(/'/g, "'");
+            
+            // Step 5: Remove any remaining syntax markup
+            code = code.replace(/syntax-\w+">/g, '');
+            
+            // Step 6: Remove standalone HTML entities
+            code = code.replace(/&[a-z]+;/gi, '');
+            
+            // Step 7: Final cleanup
+            code = code.trim();
+            
+            // Display
+            document.getElementById('cleanOutput').textContent = code;
+        }
+
+        function copyClean() {
+            const text = document.getElementById('cleanOutput').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Clean code copied to clipboard!');
+            });
+        }
+
+        // Auto-clean on page load
+        window.onload = () => {
+            cleanCode();
+        };
+    </script>
+</body>
+</html>

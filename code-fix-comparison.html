@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Output Comparison - Before vs After Fix</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .box {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .box h2 {
+            margin-top: 0;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #ddd;
+        }
+        .box.bad h2 {
+            color: #dc3545;
+            border-bottom-color: #dc3545;
+        }
+        .box.good h2 {
+            color: #28a745;
+            border-bottom-color: #28a745;
+        }
+        .code-display {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            overflow-x: auto;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge-bad {
+            background: #dc3545;
+            color: white;
+        }
+        .badge-good {
+            background: #28a745;
+            color: white;
+        }
+        .explanation {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+        }
+        .explanation h3 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .explanation ul {
+            margin: 10px 0 0 20px;
+            padding: 0;
+        }
+        .explanation li {
+            margin: 5px 0;
+            color: #555;
+        }
+        .highlight-problem {
+            background: #fff3cd;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #856404;
+            font-weight: bold;
+        }
+        .syntax-comment { color: #6a9955; }
+        .syntax-keyword { color: #569cd6; }
+        .syntax-function { color: #dcdcaa; }
+        @media (max-width: 968px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Code Display Issue - FIXED!</h1>
+            <p style="color: #666; margin: 10px 0 0 0;">Compare the output before and after the fix</p>
+        </div>
+
+        <div class="comparison">
+            <!-- BEFORE (Bad) -->
+            <div class="box bad">
+                <h2>❌ BEFORE (The Problem) <span class="badge badge-bad">BROKEN</span></h2>
+                
+                <div class="explanation">
+                    <h3>What Was Wrong:</h3>
+                    <ul>
+                        <li>HTML syntax highlighting tags visible in output</li>
+                        <li>Code mixed with <span class="highlight-problem">"syntax-comment"</span>, <span class="highlight-problem">"syntax-keyword"</span>, etc.</li>
+                        <li>Not clean code - can't copy-paste directly</li>
+                        <li>Confusing and unprofessional</li>
+                    </ul>
+                </div>
+
+                <div class="code-display">
+<span class="syntax-comment">// Place this code in the OnFinishTask trigger of Operator2</span>
+<span class="syntax-comment">// Get reference to the transporter and control point</span>
+Object transporter = model().find("Transporter1"); <span class="syntax-comment">// Change to your transporter name</span>
+Object controlPoint9 = transporter.labels["controlpoints"][9];
+
+<span class="syntax-comment">// Set delay at control point 9</span>
+<span class="syntax-comment">// Delay time in seconds (adjust as needed)</span>
+<span class="syntax-keyword">double</span> delayTime = 30.0;
+
+<span class="syntax-comment">// Apply the delay to control point 9</span>
+<span class="syntax-keyword">if</span>(controlPoint9) {
+    controlPoint9.labels["dwelltime"] = delayTime;
+    
+    <span class="syntax-comment">// Alternative method using setcontrolpointproperty</span>
+    <span class="syntax-comment">// setcontrolpointproperty(transporter, 9, "dwelltime", delayTime);</span>
+    
+    <span class="syntax-comment">// Log the action <span class="syntax-keyword">for</span> debugging</span>
+    pt("Delay of " + <span class="syntax-function">numtostring</span>(delayTime) + " seconds set at control point 9");
+}
+<span class="syntax-keyword">else</span> {
+    pt("Error: Control point 9 not found");
+}
+                </div>
+            </div>
+
+            <!-- AFTER (Good) -->
+            <div class="box good">
+                <h2>✅ AFTER (The Fix) <span class="badge badge-good">PERFECT</span></h2>
+                
+                <div class="explanation">
+                    <h3>What's Fixed:</h3>
+                    <ul>
+                        <li>✅ Clean, pure FlexScript code</li>
+                        <li>✅ No HTML tags or markup</li>
+                        <li>✅ Ready to copy-paste directly into FlexSim</li>
+                        <li>✅ Professional and readable</li>
+                        <li>✅ Proper syntax highlighting (visual only)</li>
+                    </ul>
+                </div>
+
+                <div class="code-display">
+<span class="syntax-comment">// Place this code in the OnFinishTask trigger of Operator2</span>
+<span class="syntax-comment">// Get reference to the transporter and control point</span>
+Object transporter = model().find("Transporter1"); <span class="syntax-comment">// Change to your transporter name</span>
+Object controlPoint9 = transporter.labels["controlpoints"][9];
+
+<span class="syntax-comment">// Set delay at control point 9</span>
+<span class="syntax-comment">// Delay time in seconds (adjust as needed)</span>
+<span class="syntax-keyword">double</span> delayTime = 30.0;
+
+<span class="syntax-comment">// Apply the delay to control point 9</span>
+<span class="syntax-keyword">if</span>(controlPoint9) {
+    controlPoint9.labels["dwelltime"] = delayTime;
+    
+    <span class="syntax-comment">// Alternative method using setcontrolpointproperty</span>
+    <span class="syntax-comment">// setcontrolpointproperty(transporter, 9, "dwelltime", delayTime);</span>
+    
+    <span class="syntax-comment">// Log the action for debugging</span>
+    pt("Delay of " + <span class="syntax-function">numtostring</span>(delayTime) + " seconds set at control point 9");
+}
+<span class="syntax-keyword">else</span> {
+    pt("Error: Control point 9 not found");
+}
+                </div>
+            </div>
+        </div>
+
+        <!-- What When You Copy -->
+        <div style="margin-top: 30px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="color: #28a745; margin-top: 0;">📋 What You Get When You Copy (Plain Text)</h2>
+            <div class="explanation">
+                <h3>After the fix, copying the code gives you THIS clean text:</h3>
+            </div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 15px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.8; border: 2px solid #28a745;">
+// Place this code in the OnFinishTask trigger of Operator2
+// Get reference to the transporter and control point
+Object transporter = model().find("Transporter1"); // Change to your transporter name
+Object controlPoint9 = transporter.labels["controlpoints"][9];
+
+// Set delay at control point 9
+// Delay time in seconds (adjust as needed)
+double delayTime = 30.0;
+
+// Apply the delay to control point 9
+if(controlPoint9) {
+    controlPoint9.labels["dwelltime"] = delayTime;
+    
+    // Alternative method using setcontrolpointproperty
+    // setcontrolpointproperty(transporter, 9, "dwelltime", delayTime);
+    
+    // Log the action for debugging
+    pt("Delay of " + numtostring(delayTime) + " seconds set at control point 9");
+}
+else {
+    pt("Error: Control point 9 not found");
+}
+            </div>
+            <p style="margin-top: 15px; color: #28a745; font-weight: 600; text-align: center;">
+                ✅ Perfect! Ready to paste directly into FlexSim!
+            </p>
+        </div>
+
+        <!-- Technical Explanation -->
+        <div style="margin-top: 30px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="color: #667eea; margin-top: 0;">🔧 Technical Details of the Fix</h2>
+            
+            <div class="explanation">
+                <h3>Three Problems Solved:</h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #dc3545;">
+                    <h4 style="margin-top: 0; color: #dc3545;">Problem 1: AI Output</h4>
+                    <p style="font-size: 13px; color: #555;">The AI was sometimes including HTML markup in its response</p>
+                    <div style="background: white; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 11px;">
+&lt;span class="syntax-comment"&gt;// comment&lt;/span&gt;
+                    </div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107;">
+                    <h4 style="margin-top: 0; color: #ffc107;">Problem 2: Display Logic</h4>
+                    <p style="font-size: 13px; color: #555;">The app wasn't cleaning the AI response before displaying</p>
+                    <div style="background: white; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 11px;">
+No HTML stripping = Mess!
+                    </div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #28a745;">
+                    <h4 style="margin-top: 0; color: #28a745;">Solution: Multi-Layer Clean</h4>
+                    <p style="font-size: 13px; color: #555;">Added cleaning functions at multiple stages</p>
+                    <div style="background: white; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 11px;">
+1. Better AI prompt
+2. Strip HTML tags
+3. Clean syntax markup
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; background: #e7f3ff; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
+                <h3 style="margin-top: 0; color: #667eea;">How the Fix Works:</h3>
+                <ol style="color: #555; margin-left: 20px;">
+                    <li><strong>Improved AI Prompt:</strong> Explicitly tells AI to output plain text only, no HTML/XML</li>
+                    <li><strong>Response Cleaning:</strong> Removes any HTML tags using regex: <code>code.replace(/&lt;[^&gt;]*&gt;/g, '')</code></li>
+                    <li><strong>Syntax Cleanup:</strong> Removes patterns like "syntax-comment">text</li>
+                    <li><strong>Visual Highlighting:</strong> Applied AFTER cleaning, only for display (doesn't affect copy)</li>
+                    <li><strong>Copy Function:</strong> Uses <code>innerText</code> which gives clean text without HTML</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div style="margin-top: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; color: white;">
+            <h2 style="margin-top: 0;">🎉 Problem Solved!</h2>
+            <p style="font-size: 18px; margin: 20px 0;">The updated <strong>ai-flexsim-generator.html</strong> now generates clean, copy-paste ready code!</p>
+            <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin-top: 20px; backdrop-filter: blur(10px);">
+                <p style="margin: 0; font-size: 16px;">✅ No more HTML tags in output</p>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">✅ Clean, professional code ready to use</p>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">✅ Copy-paste directly into FlexSim</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
