@@ -23,6 +23,8 @@ for (int i = 1; i <= root.subnodes.length; i++) {
 	if (n.dataType != DATATYPE_OBJECT || n == current)
 		continue;
 	Object a = n;
+	if (a.outObjects.length == 0)
+		continue;   // no A connections out (Visual Tools, sinks) - nothing to draw
 	double q = a.stats.output.value;
 	if (q > peak)
 		peak = q;
@@ -38,6 +40,8 @@ for (int i = 1; i <= root.subnodes.length; i++) {
 	if (n.dataType != DATATYPE_OBJECT || n == current)
 		continue;
 	Object a = n;
+	if (a.outObjects.length == 0)
+		continue;
 
 	double qty = a.stats.output.value;
 	double share = qty / peak;
@@ -67,7 +71,7 @@ for (int i = 1; i <= root.subnodes.length; i++) {
 
 		// thickness by stacking parallel lines
 		double w = maxW * share;
-		int strands = 1 + (int)(w / (0.02 / toM));
+		int strands = 1 + Math.floor(w / (0.02 / toM));   // FlexScript has no C-style casts
 		if (strands > 20)
 			strands = 20;
 		for (int s = 0; s < strands; s++) {
