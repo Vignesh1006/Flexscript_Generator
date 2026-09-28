@@ -1,0 +1,7 @@
+Type,Name,X,Y,Z,RZ,SizeX,SizeY,SizeZ,ConnectTo,SConnectTo
+Source,SRC_Infeed,0,0,0,0,1.5,1.5,1,QU_Buffer01,
+Queue,QU_Buffer01,5,0,0,0,3,2,1,PR_Filler01,
+Processor,PR_Filler01,10,0,0,0,2,2,1,PR_Capper01,OP_Line1
+Processor,PR_Capper01,14,0,0,90,2,2,1,SNK_Out,OP_Line1
+Sink,SNK_Out,18,0,0,0,1.5,1.5,1,,
+Operator,OP_Line1,12,4,0,0,1,1,2,,
