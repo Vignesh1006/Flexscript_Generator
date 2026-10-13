@@ -6,8 +6,11 @@
 // MODE 1 = DRYRUN : reads the sheet and reports what would change - nothing is written
 // MODE 2 = PUSH   : applies the sheet to the model
 // Blank cell = leave that value as is. Label columns start with  label:
-// Properties set by custom code are written as (code) - they have no single value to edit.
-// PUSH skips (code) cells; change those values where the code reads them (e.g. a Global Table).
+// Properties set by custom code:
+//   code that reads one Global Table cell, e.g.  Table("Timings")[1][2]  -> PULL writes that cell's value,
+//       PUSH writes the new value back INTO THE TABLE (the code itself is never touched)
+//   any other code -> EVAL_CODE = 1 runs it once and writes the result (labels it sets are restored);
+//       read-only, PUSH skips it. EVAL_CODE = 0 writes (code) instead.
 // The workbook lives in the same folder as the model's .fsm file (save the model first).
 // One-time setup: put an empty workbook named XLSX_NAME there, with a sheet named as in SHEET.
 // Close the workbook in Excel before running. Reset the model before PULL.
@@ -22,7 +25,9 @@ Array  PULL_PROPS = ["MaxContent", "ProcessTime", "SetupTime",
                      "OutputPriority", "MaxDwellTime"];   // names not found on any object are dropped
 int    PULL_LABELS   = 1;   // PULL: 1 = add a column for every number/text label
 int    SELECTED_ONLY = 0;   // PULL: 1 = only selected objects
-string CODE_MARK = "(code)"; // PULL writes this for properties set by custom code; PUSH skips it
+int    EVAL_CODE     = 1;   // PULL: custom code that is not a plain Table("X")[r][c] lookup -
+                            //       1 = run the code once and write its result (read-only), 0 = write (code)
+string CODE_MARK = "(code)"; // written for custom code that cannot be resolved; PUSH skips it
 // -------------------
 
 // workbook path = folder of the open .fsm + XLSX_NAME
@@ -103,6 +108,8 @@ if (MODE == 0) {
 
 	// pass 2: one row per object
 	int written = 0;
+	int fromTable = 0;
+	int evaluated = 0;
 	for (int i2 = 1; i2 <= root.subnodes.length; i2++) {
 		treenode n2 = root.subnodes[i2];
 		if (n2.dataType != DATATYPE_OBJECT)
@@ -145,18 +152,96 @@ if (MODE == 0) {
 			} else
 				cv = ob.getProperty(col);
 
+			// custom code (multi-line, or a /** picklist header): find the value it produces
+			if (cv.type == VAR_TYPE_STRING) {
+				string s = cv;
+				Array lines = s.split("\n");
+				Array hdrSplit = s.split("/**");
+				if (lines.length > 1 || (hdrSplit.length > 1 && hdrSplit[1] == "")) {
+					// --- one Table("Name")[row][col] lookup? ---
+					int tOk = 0;
+					string tName = "";
+					Variant tRow = nullvar;
+					Variant tCol = nullvar;
+					Array tp = s.split("Table(\"");
+					if (tp.length == 2) {
+						string t2 = tp[2];
+						Array ta = t2.split("\")[");
+						if (ta.length >= 2) {
+							tName = ta[1];
+							string t3 = ta[2];
+							Array tb = t3.split("][");
+							if (tb.length >= 2) {
+								string rS = tb[1];
+								string t4 = tb[2];
+								Array tc = t4.split("]");
+								string cS = tc[1];
+								string rQ = rS.split("\"").join("");
+								string cQ = cS.split("\"").join("");
+								string rRest = rQ;
+								string cRest = cQ;
+								for (int dd = 0; dd <= 9; dd++) {
+									rRest = rRest.split(string.fromNum(dd)).join("");
+									cRest = cRest.split(string.fromNum(dd)).join("");
+								}
+								int rOk = rQ != "" && (rQ != rS || rRest == "");   // quoted name or plain number
+								int cOk = cQ != "" && (cQ != cS || cRest == "");
+								if (rOk && cOk && objectexists(Model.find("Tools/GlobalTables/" + tName))) {
+									if (rQ != rS) tRow = rQ; else tRow = stringtonum(rQ);
+									if (cQ != cS) tCol = cQ; else tCol = stringtonum(cQ);
+									tOk = 1;
+								}
+							}
+						}
+					}
+
+					if (tOk) {
+						cv = Table(tName)[tRow][tCol];
+						fromTable++;
+					} else if (EVAL_CODE) {
+						// run the code once from a temporary label on the object (so current = this object),
+						// then put every label back the way it was
+						Array lNames = [];
+						Array lVals = [];
+						treenode lbs = ob.find(">labels");
+						if (objectexists(lbs))
+							for (int k3 = 1; k3 <= lbs.subnodes.length; k3++) {
+								lNames.push(lbs.subnodes[k3].name);
+								lVals.push(lbs.subnodes[k3].value);
+							}
+						treenode tmp = ob.labels.assert("__xcd_eval", "");
+						tmp.dataType = DATATYPE_STRING;
+						tmp.value = s;
+						enablecode(tmp, 1);
+						buildnodeflexscript(tmp);
+						Variant res = tmp.evaluate();
+						tmp.destroy();
+						lbs = ob.find(">labels");
+						if (objectexists(lbs))
+							for (int k4 = lbs.subnodes.length; k4 >= 1; k4--) {
+								treenode L2 = lbs.subnodes[k4];
+								int idx = 0;
+								for (int k5 = 1; k5 <= lNames.length; k5++)
+									if (lNames[k5] == L2.name)
+										idx = k5;
+								if (idx > 0)
+									L2.value = lVals[idx];
+								else
+									L2.destroy();          // label created by the code
+							}
+						cv = res;
+						evaluated++;
+					} else
+						cv = CODE_MARK;
+				}
+			}
+
 			if (cv.type == VAR_TYPE_NUMBER) {
 				excelwritenum(rowN, h2 + 2, cv);
 				any = 1;
 			} else if (cv.type == VAR_TYPE_STRING) {
-				string s = cv;
-				// custom code (multi-line, or a /** picklist header) has no single value -
-				// write a marker instead, and PUSH leaves marked properties alone
-				Array lines = s.split("\n");
-				Array hdrSplit = s.split("/**");
-				if (lines.length > 1 || (hdrSplit.length > 1 && hdrSplit[1] == ""))
-					s = CODE_MARK;
-				excelwritestr(rowN, h2 + 2, s);
+				string sv = cv;
+				excelwritestr(rowN, h2 + 2, sv);
 				any = 1;
 			}
 		}
@@ -174,6 +259,10 @@ if (MODE == 0) {
 			notFound += PULL_PROPS[m] + " ";
 
 	string pmsg = "Pulled " + string.fromNum(written) + " objects x " + string.fromNum(cols.length) + " columns -> " + XLSX + " [" + SHEET + "]";
+	if (fromTable > 0)
+		pmsg += " | " + string.fromNum(fromTable) + " values read from Global Tables";
+	if (evaluated > 0)
+		pmsg += " | " + string.fromNum(evaluated) + " values from running custom code (read-only)";
 	if (notFound.length > 0)
 		pmsg += " | dropped (not a property on any object): " + notFound;
 	return pmsg;
@@ -264,6 +353,75 @@ for (int r = 2; r <= nr; r++) {
 			}
 		}
 
+		// property is custom code? then the cell belongs to the Global Table cell it reads, if any
+		if (!isLabel && now.type == VAR_TYPE_STRING) {
+			string ns = now;
+			Array nLines = ns.split("\n");
+			Array nHdr = ns.split("/**");
+			if (nLines.length > 1 || (nHdr.length > 1 && nHdr[1] == "")) {
+				int tOkP = 0;
+				string tNameP = "";
+				string tRef = "";
+				Variant tRowP = nullvar;
+				Variant tColP = nullvar;
+				Array tpP = ns.split("Table(\"");
+				if (tpP.length == 2) {
+					string t2P = tpP[2];
+					Array taP = t2P.split("\")[");
+					if (taP.length >= 2) {
+						tNameP = taP[1];
+						string t3P = taP[2];
+						Array tbP = t3P.split("][");
+						if (tbP.length >= 2) {
+							string rSP = tbP[1];
+							string t4P = tbP[2];
+							Array tcP = t4P.split("]");
+							string cSP = tcP[1];
+							string rQP = rSP.split("\"").join("");
+							string cQP = cSP.split("\"").join("");
+							string rRestP = rQP;
+							string cRestP = cQP;
+							for (int d2 = 0; d2 <= 9; d2++) {
+								rRestP = rRestP.split(string.fromNum(d2)).join("");
+								cRestP = cRestP.split(string.fromNum(d2)).join("");
+							}
+							int rOkP = rQP != "" && (rQP != rSP || rRestP == "");
+							int cOkP = cQP != "" && (cQP != cSP || cRestP == "");
+							if (rOkP && cOkP && objectexists(Model.find("Tools/GlobalTables/" + tNameP))) {
+								if (rQP != rSP) tRowP = rQP; else tRowP = stringtonum(rQP);
+								if (cQP != cSP) tColP = cQP; else tColP = stringtonum(cQP);
+								tRef = tNameP + "[" + rQP + "][" + cQP + "]";
+								tOkP = 1;
+							}
+						}
+					}
+				}
+
+				if (!tOkP) {
+					codeKept++;                  // other custom code - read-only, never overwritten
+					continue;
+				}
+
+				Variant tNow = Table(tNameP)[tRowP][tColP];
+				if (tNow == val) {
+					same++;
+					continue;
+				}
+				changed++;
+				if (preview.length < 400) {
+					string tWas = "(none)";
+					if (tNow.type == VAR_TYPE_NUMBER)
+						tWas = string.fromNum(tNow);
+					else if (tNow.type == VAR_TYPE_STRING)
+						tWas = tNow;
+					preview += nm + "." + prop + " via " + tRef + ": " + tWas + " -> " + shown + "  ";
+				}
+				if (MODE == 2)
+					Table(tNameP)[tRowP][tColP] = val;
+				continue;
+			}
+		}
+
 		if (now == val) {
 			same++;
 			continue;
@@ -293,7 +451,7 @@ if (MODE == 2)
 	repaintall();
 
 string head = MODE == 2 ? "APPLIED " : "Would change ";
-string msg = head + string.fromNum(changed) + ", unchanged " + string.fromNum(same) + ", custom code kept " + string.fromNum(codeKept);
+string msg = head + string.fromNum(changed) + ", unchanged " + string.fromNum(same) + ", custom code not pushed " + string.fromNum(codeKept);
 if (missing.length > 0)
 	msg += " | objects not found: " + missing;
 if (noProp.length > 0)
