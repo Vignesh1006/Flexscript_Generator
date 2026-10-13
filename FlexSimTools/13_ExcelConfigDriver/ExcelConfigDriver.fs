@@ -1,91 +1,271 @@
-// 13 - Excel Config Driver. Two-way sync of object properties with a CSV of
-//      Object,Property,Value rows. Save the sheet from Excel as CSV.
-// MODE 0 = PULL  : writes current model values into the CSV (objects chosen by PULL_PROPS)
-// MODE 1 = DRYRUN: reads the CSV and reports what would change - nothing is written
-// MODE 2 = PUSH  : applies the CSV to the model
+// 13 - Excel Config Driver (v4, .xlsx). Two-way sync of object properties AND labels
+//      with an Excel sheet laid out as a table: one row per object, one column per property / label.
+//      Row 1:  Object | Type | MaxContent | ProcessTime | SetupTime | label:LoadingTime ...
+//      Type (Processor, Queue, Source...) is for reference only - PUSH ignores it.
+// MODE 0 = PULL   : writes current model values into the sheet (builds the columns for you)
+// MODE 1 = DRYRUN : reads the sheet and reports what would change - nothing is written
+// MODE 2 = PUSH   : applies the sheet to the model
+// Blank cell = leave that value as is. Label columns start with  label:
+// One-time setup: create an empty workbook at XLSX with a sheet named as in SHEET.
+// Close the workbook in Excel before running. Reset the model before PULL.
 // Always run DRYRUN before PUSH. Save the model first.
 // FlexSim 2027: Script Console > paste > Execute.
 
 // ---- settings ----
-int    MODE = 1;
-string CSV  = "C:/FlexSimTools/model_config.csv";
-Array  PULL_PROPS = ["ProcessTime", "MaxContent"];   // properties to export in PULL mode
+int    MODE  = 0;
+string XLSX  = "C:/FlexSimTools/model_config.xlsx";
+string SHEET = "Sheet1";            // letters, digits and _ only
+Array  PULL_PROPS = ["MaxContent", "ProcessTime", "SetupTime",
+                     "OutputPriority", "MaxDwellTime"];   // names not found on any object are dropped
+int    PULL_LABELS   = 1;   // PULL: 1 = add a column for every number/text label
 int    SELECTED_ONLY = 0;   // PULL: 1 = only selected objects
-// ------------------
+// -------------------
 
 // ---------- PULL ----------
 if (MODE == 0) {
-	if (!fileopen(CSV, "w"))
-		return "Could not write " + CSV;
-	fpt("Object,Property,Value\n");
-
-	int rows = 0;
 	treenode root = model();
+	Array found = [];
+	for (int q = 1; q <= PULL_PROPS.length; q++)
+		found.push(0);
+	Array lcols = [];                       // label names, in the order first seen
+
+	// pass 1: discover which columns exist
 	for (int i = 1; i <= root.subnodes.length; i++) {
 		treenode n = root.subnodes[i];
 		if (n.dataType != DATATYPE_OBJECT)
 			continue;
-		Object o = n;
-		if (SELECTED_ONLY && !o.flags.isSelected)
+		Object obj = n;
+		if (SELECTED_ONLY && !switch_selected(obj, -1))
 			continue;
 
-		for (int p = 1; p <= PULL_PROPS.length; p++) {
-			string prop = PULL_PROPS[p];
-			Variant v = o.getProperty(prop);
-			if (v == nullvar)
-				continue;
-			fpt(o.name + "," + prop + "," + string.fromNum(v) + "\n");
-			rows++;
+		for (int p = 1; p <= PULL_PROPS.length; p++)
+			if (obj.getProperty(PULL_PROPS[p]) != nullvar)
+				found[p] = 1;
+
+		treenode lbls = obj.find(">labels");
+		if (PULL_LABELS && objectexists(lbls)) {
+			for (int k = 1; k <= lbls.subnodes.length; k++) {
+				treenode L = lbls.subnodes[k];
+				Variant lv = L.value;
+				if (lv.type != VAR_TYPE_NUMBER && lv.type != VAR_TYPE_STRING)
+					continue;              // pointer / array / table labels
+				int known = 0;
+				for (int u = 1; u <= lcols.length; u++)
+					if (lcols[u] == L.name)
+						known = 1;
+				if (!known)
+					lcols.push(L.name);
+			}
 		}
 	}
-	fileclose();
-	return "Pulled " + string.fromNum(rows) + " rows -> " + CSV;
+
+	// column list
+	Array cols = [];
+	for (int p2 = 1; p2 <= PULL_PROPS.length; p2++)
+		if (found[p2])
+			cols.push(PULL_PROPS[p2]);
+	for (int u2 = 1; u2 <= lcols.length; u2++) {
+		string ln = lcols[u2];
+		cols.push("label:" + ln);
+	}
+
+	excelopen(XLSX);
+	excelsetsheet(SHEET);
+
+	// clear whatever an earlier PULL left in the sheet
+	int oldC = 0;
+	while (oldC < 500 && excelreadstr(1, oldC + 1) != "")
+		oldC++;
+	int oldR = 0;
+	while (oldR < 20000 && excelreadstr(oldR + 1, 1) != "")
+		oldR++;
+	for (int cr = 1; cr <= oldR; cr++)
+		for (int cc = 1; cc <= oldC; cc++)
+			excelwritestr(cr, cc, "");
+
+	// header row
+	excelwritestr(1, 1, "Object");
+	excelwritestr(1, 2, "Type");
+	for (int h = 1; h <= cols.length; h++) {
+		string hc = cols[h];
+		excelwritestr(1, h + 2, hc);
+	}
+
+	// pass 2: one row per object
+	int written = 0;
+	for (int i2 = 1; i2 <= root.subnodes.length; i2++) {
+		treenode n2 = root.subnodes[i2];
+		if (n2.dataType != DATATYPE_OBJECT)
+			continue;
+		Object ob = n2;
+		if (SELECTED_ONLY && !switch_selected(ob, -1))
+			continue;
+
+		// object type = name of its library class (Processor, Queue, Source...)
+		string typ = "";
+		treenode cl = ob.find(">classes");
+		if (objectexists(cl) && cl.subnodes.length > 0) {
+			treenode c1 = cl.subnodes[1];
+			Variant cref = c1.value;
+			if (cref.type == VAR_TYPE_NODE) {
+				treenode cnode = cref;
+				if (objectexists(cnode)) {
+					treenode cown = ownerobject(cnode);
+					if (objectexists(cown))
+						typ = cown.name;
+				}
+			}
+			if (typ == "")
+				typ = c1.name;
+		}
+
+		int rowN = written + 2;
+		int any = 0;
+		treenode lb = ob.find(">labels");
+		for (int h2 = 1; h2 <= cols.length; h2++) {
+			string col = cols[h2];
+			Variant cv = nullvar;
+			Array lpp = col.split(":");
+			if (lpp.length == 2 && lpp[1] == "label") {
+				string lnm = lpp[2];
+				if (objectexists(lb))
+					for (int k2 = 1; k2 <= lb.subnodes.length; k2++)
+						if (lb.subnodes[k2].name == lnm)
+							cv = lb.subnodes[k2].value;
+			} else
+				cv = ob.getProperty(col);
+
+			if (cv.type == VAR_TYPE_NUMBER) {
+				excelwritenum(rowN, h2 + 2, cv);
+				any = 1;
+			} else if (cv.type == VAR_TYPE_STRING) {
+				string s = cv;
+				excelwritestr(rowN, h2 + 2, s);
+				any = 1;
+			}
+		}
+		if (!any)
+			continue;                             // nothing to configure on this object
+		excelwritestr(rowN, 1, ob.name);
+		excelwritestr(rowN, 2, typ);
+		written++;
+	}
+	excelclose(1);                                // save and close
+
+	string notFound = "";
+	for (int m = 1; m <= PULL_PROPS.length; m++)
+		if (!found[m])
+			notFound += PULL_PROPS[m] + " ";
+
+	string pmsg = "Pulled " + string.fromNum(written) + " objects x " + string.fromNum(cols.length) + " columns -> " + XLSX + " [" + SHEET + "]";
+	if (notFound.length > 0)
+		pmsg += " | dropped (not a property on any object): " + notFound;
+	return pmsg;
 }
 
-// ---------- read the CSV for DRYRUN / PUSH ----------
-if (!fileopen(CSV, "r"))
-	return "Could not open " + CSV;
-Array rows = [];
-while (!endoffile()) {
-	string line = filereadline();
-	if (line.length > 2)
-		rows.push(line);
-}
-fileclose();
+// ---------- read the sheet for DRYRUN / PUSH ----------
+excelopen(XLSX);
+excelsetsheet(SHEET);
+
+int nc = 0;                                   // columns = filled header cells in row 1
+while (nc < 500 && excelreadstr(1, nc + 1) != "")
+	nc++;
+int nr = 1;                                   // rows = filled object names in column 1
+while (nr < 20000 && excelreadstr(nr + 1, 1) != "")
+	nr++;
+Array hdr = [];
+for (int hh = 1; hh <= nc; hh++)
+	hdr.push(excelreadstr(1, hh));
 
 int changed = 0;
 int same = 0;
 string missing = "";
+string noProp = "";
 string preview = "";
 
-for (int r = 2; r <= rows.length; r++) {     // row 1 is the header
-	Array f = rows[r].split(",");
-	if (f.length < 3)
-		continue;
-
-	string nm   = f[1];
-	string prop = f[2];
-	double val  = stringtonum(f[3]);
-
+for (int r = 2; r <= nr; r++) {
+	string nm = excelreadstr(r, 1);
 	Object o = Model.find(nm);
 	if (!objectexists(o)) {
 		missing += nm + " ";
 		continue;
 	}
 
-	double now = o.getProperty(prop);
-	if (now == val) {
-		same++;
-		continue;
+	for (int j = 2; j <= nc; j++) {
+		string prop = hdr[j];
+		if (prop == "" || prop == "Type")
+			continue;                        // Type is reference only
+
+		// read the cell: text, number, or blank (= leave as is)
+		string cs = excelreadstr(r, j);
+		double cn = excelreadnum(r, j);
+		string digits = cs.split(",").join("");          // "1,800" -> "1800"
+		string body = "x";
+		Array sg = digits.split("-");
+		if (sg.length == 1)
+			body = digits;
+		else if (sg.length == 2 && sg[1] == "")
+			body = sg[2];
+		string rest = body;
+		for (int d = 0; d <= 9; d++)
+			rest = rest.split(string.fromNum(d)).join("");
+		int isNumText = body != "" && body != "." && (rest == "" || rest == ".");
+
+		Variant val = nullvar;
+		string shown = cs;
+		if (cs != "") {
+			if (isNumText)
+				val = stringtonum(digits);
+			else
+				val = cs;                    // expression / distribution / text label
+		} else if (cn != 0) {
+			val = cn;
+			shown = string.fromNum(cn);
+		} else
+			continue;                        // blank cell = leave as is
+
+		Array lp = prop.split(":");
+		int isLabel = lp.length == 2 && (lp[1] == "label" || lp[1] == "Label");
+		string lname = "";
+		if (isLabel)
+			lname = lp[2];
+
+		Variant now = nullvar;
+		if (isLabel)
+			now = getlabel(o, lname);
+		else {
+			now = o.getProperty(prop);
+			if (now == nullvar) {
+				if (noProp.length < 300)
+					noProp += nm + "." + prop + " ";
+				continue;
+			}
+		}
+
+		if (now == val) {
+			same++;
+			continue;
+		}
+
+		changed++;
+		if (preview.length < 400) {
+			string was = "(none)";
+			if (now.type == VAR_TYPE_NUMBER)
+				was = string.fromNum(now);
+			else if (now.type == VAR_TYPE_STRING)
+				was = now;
+			preview += nm + "." + prop + ": " + was + " -> " + shown + "  ";
+		}
+
+		if (MODE == 2) {
+			if (isLabel)
+				setlabel(o, lname, val);
+			else
+				o.setProperty(prop, val);
+		}
 	}
-
-	changed++;
-	if (preview.length < 400)
-		preview += nm + "." + prop + ": " + numtostring(now, 0, 2) + " -> " + numtostring(val, 0, 2) + "  ";
-
-	if (MODE == 2)
-		o.setProperty(prop, val);
 }
+excelclose(0);                                // close without saving
 
 if (MODE == 2)
 	repaintall();
@@ -93,5 +273,7 @@ if (MODE == 2)
 string head = MODE == 2 ? "APPLIED " : "Would change ";
 string msg = head + string.fromNum(changed) + ", unchanged " + string.fromNum(same);
 if (missing.length > 0)
-	msg += " | not found: " + missing;
+	msg += " | objects not found: " + missing;
+if (noProp.length > 0)
+	msg += " | no such property: " + noProp;
 return msg + " | " + preview;
