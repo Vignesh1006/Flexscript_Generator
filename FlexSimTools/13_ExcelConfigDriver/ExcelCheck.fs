@@ -4,20 +4,25 @@
 // FlexSim 2027: Script Console > paste > Execute. Send the whole result line back.
 
 // ---- settings (same values as in ExcelConfigDriver.fs) ----
-string XLSX  = "C:/FlexSimTools/model_config.xlsx";
-string SHEET = "Sheet1";
+string XLSX_NAME = "model_config.xlsx";   // kept in the same folder as the .fsm
+string SHEET     = "Sheet1";
 // ------------------------------------------------------------
 
-string out = "";
+string MODEL_DIR = modeldir();
+if (MODEL_DIR == "")
+	return "Save the model (.fsm) first - the workbook is kept next to it";
+string XLSX = MODEL_DIR + XLSX_NAME;
+
+string out = "path = " + XLSX + " | ";
 
 // 1. can FlexScript reach the folder at all? (plain text file next to the workbook)
-string probe = "C:/FlexSimTools/flexsim_write_test.txt";
+string probe = MODEL_DIR + "flexsim_write_test.txt";
 if (fileopen(probe, "w")) {
 	fpt("ok");
 	fileclose();
 	out += "folder writable: yes | ";
 } else
-	out += "folder writable: NO (create the folder C:/FlexSimTools first) | ";
+	out += "folder writable: NO | ";
 
 // 2. open the workbook
 Variant r1 = excelopen(XLSX);

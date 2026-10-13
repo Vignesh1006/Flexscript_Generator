@@ -6,20 +6,27 @@
 // MODE 1 = DRYRUN : reads the sheet and reports what would change - nothing is written
 // MODE 2 = PUSH   : applies the sheet to the model
 // Blank cell = leave that value as is. Label columns start with  label:
-// One-time setup: create an empty workbook at XLSX with a sheet named as in SHEET.
+// The workbook lives in the same folder as the model's .fsm file (save the model first).
+// One-time setup: put an empty workbook named XLSX_NAME there, with a sheet named as in SHEET.
 // Close the workbook in Excel before running. Reset the model before PULL.
 // Always run DRYRUN before PUSH. Save the model first.
 // FlexSim 2027: Script Console > paste > Execute.
 
 // ---- settings ----
 int    MODE  = 0;
-string XLSX  = "C:/FlexSimTools/model_config.xlsx";
+string XLSX_NAME = "model_config.xlsx";   // file name only - the folder is the .fsm's folder
 string SHEET = "Sheet1";            // letters, digits and _ only
 Array  PULL_PROPS = ["MaxContent", "ProcessTime", "SetupTime",
                      "OutputPriority", "MaxDwellTime"];   // names not found on any object are dropped
 int    PULL_LABELS   = 1;   // PULL: 1 = add a column for every number/text label
 int    SELECTED_ONLY = 0;   // PULL: 1 = only selected objects
 // -------------------
+
+// workbook path = folder of the open .fsm + XLSX_NAME
+string MODEL_DIR = modeldir();
+if (MODEL_DIR == "")
+	return "Save the model (.fsm) first - the workbook is kept next to it";
+string XLSX = MODEL_DIR + XLSX_NAME;
 
 // ---------- PULL ----------
 if (MODE == 0) {
