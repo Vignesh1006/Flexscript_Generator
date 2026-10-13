@@ -6,6 +6,8 @@
 // MODE 1 = DRYRUN : reads the sheet and reports what would change - nothing is written
 // MODE 2 = PUSH   : applies the sheet to the model
 // Blank cell = leave that value as is. Label columns start with  label:
+// Properties set by custom code are written as (code) - they have no single value to edit.
+// PUSH skips (code) cells; change those values where the code reads them (e.g. a Global Table).
 // The workbook lives in the same folder as the model's .fsm file (save the model first).
 // One-time setup: put an empty workbook named XLSX_NAME there, with a sheet named as in SHEET.
 // Close the workbook in Excel before running. Reset the model before PULL.
@@ -20,6 +22,7 @@ Array  PULL_PROPS = ["MaxContent", "ProcessTime", "SetupTime",
                      "OutputPriority", "MaxDwellTime"];   // names not found on any object are dropped
 int    PULL_LABELS   = 1;   // PULL: 1 = add a column for every number/text label
 int    SELECTED_ONLY = 0;   // PULL: 1 = only selected objects
+string CODE_MARK = "(code)"; // PULL writes this for properties set by custom code; PUSH skips it
 // -------------------
 
 // workbook path = folder of the open .fsm + XLSX_NAME
@@ -147,6 +150,12 @@ if (MODE == 0) {
 				any = 1;
 			} else if (cv.type == VAR_TYPE_STRING) {
 				string s = cv;
+				// custom code (multi-line, or a /** picklist header) has no single value -
+				// write a marker instead, and PUSH leaves marked properties alone
+				Array lines = s.split("\n");
+				Array hdrSplit = s.split("/**");
+				if (lines.length > 1 || (hdrSplit.length > 1 && hdrSplit[1] == ""))
+					s = CODE_MARK;
 				excelwritestr(rowN, h2 + 2, s);
 				any = 1;
 			}
@@ -186,6 +195,7 @@ for (int hh = 1; hh <= nc; hh++)
 
 int changed = 0;
 int same = 0;
+int codeKept = 0;
 string missing = "";
 string noProp = "";
 string preview = "";
@@ -217,6 +227,11 @@ for (int r = 2; r <= nr; r++) {
 		for (int d = 0; d <= 9; d++)
 			rest = rest.split(string.fromNum(d)).join("");
 		int isNumText = body != "" && body != "." && (rest == "" || rest == ".");
+
+		if (cs == CODE_MARK) {
+			codeKept++;
+			continue;                        // property is custom code - leave it as is
+		}
 
 		Variant val = nullvar;
 		string shown = cs;
@@ -278,7 +293,7 @@ if (MODE == 2)
 	repaintall();
 
 string head = MODE == 2 ? "APPLIED " : "Would change ";
-string msg = head + string.fromNum(changed) + ", unchanged " + string.fromNum(same);
+string msg = head + string.fromNum(changed) + ", unchanged " + string.fromNum(same) + ", custom code kept " + string.fromNum(codeKept);
 if (missing.length > 0)
 	msg += " | objects not found: " + missing;
 if (noProp.length > 0)
